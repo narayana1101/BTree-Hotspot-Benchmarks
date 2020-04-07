@@ -1,0 +1,3 @@
+/Users/venkata/Work/cs764/benchmarks-stripped/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/venkata/Work/cs764/benchmarks-stripped/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/venkata/Work/cs764/benchmarks-stripped/cmake-build-debug/CMakeFiles/index_microbench.dir
