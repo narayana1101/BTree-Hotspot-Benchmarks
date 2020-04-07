@@ -37,6 +37,7 @@ enum {
   WORKLOAD_A,
   WORKLOAD_C,
   WORKLOAD_E,
+  WORKLOAD_I,
 };
 
 // These are key types we use for running the benchmark

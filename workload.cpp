@@ -95,6 +95,9 @@ inline void load(int wl,
   } else if (kt == RAND_KEY && wl == WORKLOAD_E) {
     init_file = "workloads/loade_zipf_int_100M.dat";
     txn_file = "workloads/txnse_zipf_int_100M.dat";
+  } else if (kt == RAND_KEY && wl == WORKLOAD_I) {
+      init_file = "workloads/loadi_zipf_int_100M.dat";
+      txn_file = "workloads/txnsi_zipf_int_100M.dat";
   } else if (kt == MONO_KEY && wl == WORKLOAD_A) {
     init_file = "workloads/mono_inc_loada_zipf_int_100M.dat";
     txn_file = "workloads/mono_inc_txnsa_zipf_int_100M.dat";
@@ -104,6 +107,9 @@ inline void load(int wl,
   } else if (kt == MONO_KEY && wl == WORKLOAD_E) {
     init_file = "workloads/mono_inc_loade_zipf_int_100M.dat";
     txn_file = "workloads/mono_inc_txnse_zipf_int_100M.dat";
+  } else if (kt == MONO_KEY && wl == WORKLOAD_I) {
+      init_file = "workloads/mono_inc_loadi_zipf_int_100M.dat";
+      txn_file = "workloads/mono_inc_txnsi_zipf_int_100M.dat";
   } else {
     fprintf(stderr, "Unknown workload type or key type: %d, %d\n", wl, kt);
     exit(1);
@@ -566,6 +572,8 @@ int main(int argc, char *argv[]) {
     wl = WORKLOAD_C;
   } else if (strcmp(argv[1], "e") == 0) {
     wl = WORKLOAD_E;
+  } else if (strcmp(argv[1], "i") == 0) {
+      wl = WORKLOAD_I;
   } else {
     fprintf(stderr, "Unknown workload: %s\n", argv[1]);
     exit(1);
