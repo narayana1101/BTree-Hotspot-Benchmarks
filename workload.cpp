@@ -349,6 +349,8 @@ inline void exec(int wl,
   std::cout << "insert " << tput << "\033[0m" << "\n";
 
   std::cout << "Total restarts " << idx->get_restarts() << "\n";
+    std::cout << "Total leaf splits " << idx->get_leaf_splits() << "\n";
+    std::cout << "Total inner splits " << idx->get_inner_splits() << "\n";
 
   // If the workload only executes load phase then we return here
   if(insert_only == true) {

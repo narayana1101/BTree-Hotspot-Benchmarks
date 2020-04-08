@@ -18,6 +18,8 @@
 
 namespace btreeolc {
     std::atomic<long> total_restarts;
+    std::atomic<long> inner_splits;
+    std::atomic<long> leaf_splits;
     enum class PageType : uint8_t {
         BTreeInner = 1, BTreeLeaf = 2
     };
@@ -145,6 +147,7 @@ namespace btreeolc {
         }
 
         BTreeLeaf *split(Key &sep) {
+            leaf_splits++;
             BTreeLeaf *newLeaf = new BTreeLeaf();
             newLeaf->count = count - (count / 2);
             count = count - newLeaf->count;
@@ -200,6 +203,7 @@ namespace btreeolc {
         }
 
         BTreeInner *split(Key &sep) {
+            inner_splits++;
             BTreeInner *newInner = new BTreeInner();
             newInner->count = count - (count / 2);
             count = count - newInner->count - 1;
@@ -247,8 +251,16 @@ namespace btreeolc {
                 _mm_pause();
         }
 
-        long get_restarts(){
+        long get_restarts() {
             return total_restarts;
+        }
+
+        long get_leaf_splits() {
+            return leaf_splits;
+        }
+
+        long get_inner_splits() {
+            return inner_splits;
         }
 
         void insert(Key k, Value v) {

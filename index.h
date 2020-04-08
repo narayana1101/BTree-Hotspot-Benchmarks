@@ -33,6 +33,10 @@ public:
 
     virtual long get_restarts() = 0;
 
+    virtual long get_inner_splits() = 0;
+
+    virtual long get_leaf_splits() = 0;
+
     virtual uint64_t find(KeyType key, std::vector<uint64_t> *v) = 0;
 
     virtual uint64_t find_bwtree_fast(KeyType key, std::vector<uint64_t> *v) {};
@@ -148,6 +152,14 @@ public:
 
     long get_restarts() {
         return idx.get_restarts();
+    }
+
+    long get_leaf_splits() {
+        return idx.get_leaf_splits();
+    }
+
+    long get_inner_splits() {
+        return idx.get_inner_splits();
     }
 
     uint64_t find(KeyType key, std::vector<uint64_t> *v) {
