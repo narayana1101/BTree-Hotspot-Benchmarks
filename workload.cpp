@@ -75,13 +75,13 @@ size_t MemUsage() {
 //==============================================================
 // LOAD
 //==============================================================
-inline void load(int wl, 
-                 int kt, 
-                 int index_type, 
-                 std::vector<keytype> &init_keys, 
-                 std::vector<keytype> &keys, 
-                 std::vector<uint64_t> &values, 
-                 std::vector<int> &ranges, 
+inline void load(int wl,
+                 int kt,
+                 int index_type,
+                 std::vector<keytype> &init_keys,
+                 std::vector<keytype> &keys,
+                 std::vector<uint64_t> &values,
+                 std::vector<int> &ranges,
                  std::vector<int> &ops) {
   std::string init_file;
   std::string txn_file;
@@ -141,7 +141,7 @@ inline void load(int wl,
       break;
     }
   }
-  
+
   fprintf(stderr, "Loaded %d keys\n", count);
 
   count = 0;
@@ -171,10 +171,10 @@ inline void load(int wl,
     return;
   }
 
-  // If we also execute transaction then open the 
+  // If we also execute transaction then open the
   // transacton file here
   std::ifstream infile_txn(txn_file);
-  
+
   count = 0;
   while ((count < LIMIT) && infile_txn.good()) {
     infile_txn >> op >> key;
@@ -230,13 +230,13 @@ inline void load(int wl,
 //==============================================================
 // EXEC
 //==============================================================
-inline void exec(int wl, 
-                 int index_type, 
+inline void exec(int wl,
+                 int index_type,
                  int num_thread,
-                 std::vector<keytype> &init_keys, 
-                 std::vector<keytype> &keys, 
-                 std::vector<uint64_t> &values, 
-                 std::vector<int> &ranges, 
+                 std::vector<keytype> &init_keys,
+                 std::vector<keytype> &keys,
+                 std::vector<uint64_t> &values,
+                 std::vector<int> &ranges,
                  std::vector<int> &ops) {
 
   Index<keytype, keycomp> *idx = getInstance<keytype, keycomp>(index_type, key_type);
@@ -245,21 +245,21 @@ inline void exec(int wl,
   int count = (int)init_keys.size();
   fprintf(stderr, "Populating the index with %d keys using %d threads\n", count, num_thread);
 
-#ifdef USE_TBB  
+#ifdef USE_TBB
   tbb::task_scheduler_init init{num_thread};
 
   std::atomic<int> next_thread_id;
   next_thread_id.store(0);
-  
+
   auto func = [idx, &init_keys, &values, &next_thread_id](const tbb::blocked_range<size_t>& r) {
     size_t start_index = r.begin();
     size_t end_index = r.end();
-   
+
 //    threadinfo *ti = threadinfo::make(threadinfo::TI_MAIN, -1);
 
     int thread_id = next_thread_id.fetch_add(1);
     idx->AssignGCID(thread_id);
-    
+
     int gc_counter = 0;
     for(size_t i = start_index;i < end_index;i++) {
       idx->insert(init_keys[i], values[i]);
@@ -271,7 +271,7 @@ inline void exec(int wl,
 
 //    ti->rcu_quiesce();
     idx->UnregisterThread(thread_id);
-    
+
     return;
   };
 
@@ -286,7 +286,7 @@ inline void exec(int wl,
     size_t key_per_thread = total_num_key / num_thread;
     size_t start_index = key_per_thread * thread_id;
     size_t end_index = start_index + key_per_thread;
-   
+
 //    threadinfo *ti = threadinfo::make(threadinfo::TI_MAIN, -1);
 
     int gc_counter = 0;
@@ -296,24 +296,24 @@ inline void exec(int wl,
     for(size_t i = start_index;i < end_index;i++) {
 #endif
       if(index_type == TYPE_SKIPLIST) {
-        idx->insert(init_keys[start_index + end_index - 1 - i], 
+        idx->insert(init_keys[start_index + end_index - 1 - i],
                     values[start_index + end_index - 1 - i]
                     );
       } else {
-#ifdef BWTREE_USE_DELTA_UPDATE
+//#ifdef BWTREE_USE_DELTA_UPDATE
         idx->insert(init_keys[i], values[i]);
-#else
-        idx->insert_bwtree_fast(init_keys[i], values[i]);
-#endif
+//#else
+//        idx->insert_bwtree_fast(init_keys[i], values[i]);
+//#endif
       }
       gc_counter++;
 //      if(gc_counter % 4096 == 0) {
 //        ti->rcu_quiesce();
 //      }
-    } 
+    }
 
 //    ti->rcu_quiesce();
-    
+
     return;
   };
 //
@@ -325,7 +325,7 @@ inline void exec(int wl,
 //    PCM_NUMA::StartNUMAMonitor();
 //  }
 
-  double start_time = get_now(); 
+  double start_time = get_now();
   StartThreads(idx, num_thread, func, false);
   double end_time = get_now();
 
@@ -333,7 +333,7 @@ inline void exec(int wl,
     fprintf(stderr, "SkipList size = %lu\n", idx->GetIndexSize());
     fprintf(stderr, "Skiplist avg. steps = %f\n", (double)skiplist_total_steps / (double)init_keys.size());
   }
- 
+
 //  if(memory_bandwidth == true) {
 //    PCM_memory::EndMemoryMonitor();
 //  }
@@ -341,13 +341,14 @@ inline void exec(int wl,
 //  if(numa == true) {
 //    PCM_NUMA::EndNUMAMonitor();
 //  }
-#endif   
-  
+#endif
+
   double tput = count / (end_time - start_time) / 1000000; //Mops/sec
 
   std::cout << "\033[1;32m";
   std::cout << "insert " << tput << "\033[0m" << "\n";
 
+  std::cout << "Total restarts " << idx->get_restarts() << "\n";
 
   // If the workload only executes load phase then we return here
   if(insert_only == true) {
@@ -366,14 +367,14 @@ inline void exec(int wl,
   }
 
   fprintf(stderr, "# of Txn: %d\n", txn_num);
-  
+
   // This is used to count how many read misses we have found
   std::atomic<size_t> read_miss_counter{}, read_hit_counter{};
   read_miss_counter.store(0UL);
   read_hit_counter.store(0UL);
 
-  auto func2 = [num_thread, 
-                idx, 
+  auto func2 = [num_thread,
+                idx,
                 &read_miss_counter,
                 &read_hit_counter,
                 &keys,
@@ -384,10 +385,10 @@ inline void exec(int wl,
     size_t op_per_thread = total_num_op / num_thread;
     size_t start_index = op_per_thread * thread_id;
     size_t end_index = start_index + op_per_thread;
-   
+
     std::vector<uint64_t> v;
     v.reserve(10);
- 
+
 //    threadinfo *ti = threadinfo::make(threadinfo::TI_MAIN, -1);
 
     int counter = 0;
@@ -404,11 +405,11 @@ inline void exec(int wl,
 #else
         idx->find_bwtree_fast(keys[i], &v);
 #endif
-        
-        // If we count read misses then increment the 
+
+        // If we count read misses then increment the
         // counter here if the vetor is empty
 #ifdef COUNT_READ_MISS
-        if(v.size() == 0UL) {  
+        if(v.size() == 0UL) {
           read_miss_counter.fetch_add(1);
         } else {
           read_hit_counter.fetch_add(1);
@@ -442,7 +443,7 @@ inline void exec(int wl,
 //    PCM_NUMA::StartNUMAMonitor();
 //  }
 
-  start_time = get_now();  
+  start_time = get_now();
   StartThreads(idx, num_thread, func2, false);
   end_time = get_now();
 
@@ -456,8 +457,8 @@ inline void exec(int wl,
 
   // Print out how many reads have missed in the index (do not have a value)
 #ifdef COUNT_READ_MISS
-  fprintf(stderr, 
-          "  Read misses: %lu; Read hits: %lu\n", 
+  fprintf(stderr,
+          "  Read misses: %lu; Read hits: %lu\n",
           read_miss_counter.load(),
           read_hit_counter.load());
 #endif
@@ -467,12 +468,14 @@ inline void exec(int wl,
   std::cout << "sum = " << sum << "\n";
   std::cout << "\033[1;31m";
 
-  if (wl == WORKLOAD_A) {  
+  if (wl == WORKLOAD_A) {
     std::cout << "read/update " << (tput + (sum - sum));
   } else if (wl == WORKLOAD_C) {
     std::cout << "read " << (tput + (sum - sum));
   } else if (wl == WORKLOAD_E) {
     std::cout << "insert/scan " << (tput + (sum - sum));
+  } else if (wl == WORKLOAD_I) {
+      std::cout << "insert only " << (tput + (sum - sum));
   } else {
     fprintf(stderr, "Unknown workload type: %d\n", wl);
     exit(1);
@@ -560,7 +563,7 @@ int main(int argc, char *argv[]) {
     std::cout << "   --mem: Whether to monitor memory access\n";
     std::cout << "   --numa: Whether to monitor NUMA throughput\n";
     std::cout << "   --insert-only: Whether to only execute insert operations\n";
-    
+
     return 1;
   }
 
@@ -613,7 +616,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Unknown index type: %d\n", index_type);
     exit(1);
   }
-  
+
   // Then read number of threads using command line
   int num_thread = atoi(argv[4]);
   if(num_thread < 1 || num_thread > 40) {
@@ -622,7 +625,7 @@ int main(int argc, char *argv[]) {
   } else {
     fprintf(stderr, "Number of threads: %d\n", num_thread);
   }
-  
+
   // Then read all remianing arguments
   int repeat_counter = 1;
   char **argv_end = argv + argc;
@@ -645,7 +648,7 @@ int main(int argc, char *argv[]) {
       if(max_init_key <= 0) {
         fprintf(stderr, "Illegal maximum init keys: %ld\n", max_init_key);
         exit(1);
-      } 
+      }
 
       // Ignore the next argument
       v++;
@@ -750,7 +753,7 @@ int main(int argc, char *argv[]) {
   }
 
 
-  fprintf(stderr, "  BTree element pair count: %lu\n", 
+  fprintf(stderr, "  BTree element pair count: %lu\n",
           (uint64_t)btreeolc::BTreeLeaf<uint64_t, uint64_t>::maxEntries);
 
   // If the key type is RDTSC we just run the special function
@@ -774,13 +777,13 @@ int main(int argc, char *argv[]) {
     memset(&ops[0], 0x00, 10000000 * sizeof(int));
 
     load(wl, kt, index_type, init_keys, keys, values, ranges, ops);
-    printf("Finished loading workload file (mem = %lu)\n", MemUsage());
+    printf("Finished loading workload file\n");
     if(index_type != TYPE_NONE) {
       // Then repeat executing the same workload
       while(repeat_counter > 0) {
         exec(wl, index_type, num_thread, init_keys, keys, values, ranges, ops);
         repeat_counter--;
-        printf("Finished running benchmark (mem = %lu)\n", MemUsage());
+        printf("Finished running benchmark\n");
       }
     } else {
       fprintf(stderr, "Type None is selected - no execution phase\n");
