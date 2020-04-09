@@ -24,7 +24,7 @@ std::atomic<long> skiplist_total_steps;
 
 
 // Whether insert interleaves
-//#define INTERLEAVED_INSERT
+#define INTERLEAVED_INSERT
 
 // Whether read operatoin miss will be counted
 //#define COUNT_READ_MISS
