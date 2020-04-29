@@ -85,6 +85,7 @@ namespace btreeolc {
     struct NodeBase : public OptLock {
         PageType type;
         uint16_t count;
+        pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
     };
 
     struct BTreeLeafBase : public NodeBase {
@@ -295,6 +296,7 @@ namespace btreeolc {
                             goto restart;
                         }
                     }
+
                     node->upgradeToWriteLockOrRestart(versionNode, needRestart);
                     if (needRestart) {
                         if (parent)
@@ -347,7 +349,7 @@ namespace btreeolc {
             }
 
             auto leaf = static_cast<BTreeLeaf<Key, Value> *>(node);
-
+            pthread_mutex_lock(&node->lock);
             // Split leaf if full
             if (leaf->count == leaf->maxEntries) {
                 // Lock
@@ -355,18 +357,22 @@ namespace btreeolc {
                     parent->upgradeToWriteLockOrRestart(versionParent, needRestart);
                     if (needRestart) {
                         total_restarts++;
+                        pthread_mutex_unlock(&node->lock);
                         goto restart;
                     }
                 }
-                node->upgradeToWriteLockOrRestart(versionNode, needRestart);
-                if (needRestart) {
-                    if (parent) parent->writeUnlock();
-                    total_restarts++;
-                    goto restart;
-                }
+
+//                node->upgradeToWriteLockOrRestart(versionNode, needRestart);
+//                if (needRestart) {
+//                    if (parent) parent->writeUnlock();
+//                    total_restarts++;
+//                    pthread_mutex_unlock(&node->lock);
+//                    goto restart;
+//                }
                 if (!parent && (node != root)) { // there's a new parent
-                    node->writeUnlock();
+//                    node->writeUnlock();
                     total_restarts++;
+                    pthread_mutex_unlock(&node->lock);
                     goto restart;
                 }
                 // Split
@@ -377,28 +383,34 @@ namespace btreeolc {
                 else
                     makeRoot(sep, leaf, newLeaf);
                 // Unlock and restart
-                node->writeUnlock();
+//                node->writeUnlock();
+                pthread_mutex_unlock(&node->lock);
                 if (parent)
                     parent->writeUnlock();
                 total_restarts++;
                 goto restart;
             } else {
                 // only lock leaf node
-                node->upgradeToWriteLockOrRestart(versionNode, needRestart);
-                if (needRestart) {
-                    total_restarts++;
-                    goto restart;
-                }
+//                pthread_mutex_lock(&node->lock);
+//                node->upgradeToWriteLockOrRestart(versionNode, needRestart);
+//                if (needRestart) {
+//                    total_restarts++;
+//                    pthread_mutex_unlock(&node->lock);
+//                    goto restart;
+//                }
+
                 if (parent) {
                     parent->readUnlockOrRestart(versionParent, needRestart);
                     if (needRestart) {
-                        node->writeUnlock();
+//                        node->writeUnlock();
                         total_restarts++;
+                        pthread_mutex_unlock(&node->lock);
                         goto restart;
                     }
                 }
                 leaf->insert(k, v);
-                node->writeUnlock();
+//                node->writeUnlock();
+                pthread_mutex_unlock(&node->lock);
                 return; // success
             }
         }
